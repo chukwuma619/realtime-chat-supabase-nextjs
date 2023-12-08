@@ -1,12 +1,10 @@
-import Threads from "@/ui/threads";
+import Threads from "@/components/threads";
 import { getAllMessages } from "@/actions/message";
 import { fetchUserProfile, fetchUserDetails } from "@/actions/profile";
 
 
 
 export default async function MessagePage({ params }: { params: { user_id: string } }) {
-    const userProfile = await fetchUserProfile()
-    console.log(userProfile);
 
     const userDetails = await fetchUserDetails(params.user_id)
     console.log(userDetails);
@@ -14,6 +12,6 @@ export default async function MessagePage({ params }: { params: { user_id: strin
     const messages = await getAllMessages(params.user_id)
     console.log(messages);
 
-    return <Threads messages={messages} user_profile={userProfile} user_details={userDetails} />
+    return <Threads messages={messages}  user_details={userDetails} />
 }
 

@@ -4,12 +4,14 @@ import { useContext, useReducer, useEffect, useState } from "react";
 import { profileType, actionType } from "@/types/profileContext.types";
 import { ProfileContext, ProfileDispatchContext } from "./ProfileContext";
 
+
+const initialState = localStorage.getItem("profile");
+const parsedProfile: profileType | null = initialState ? JSON.parse(initialState) : null;
+
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
-    const [profile, dispatch] = useReducer(profileReducer, null)
+    const [profile, dispatch] = useReducer(profileReducer, parsedProfile)
 
     useEffect(() => {
-        const initialState = localStorage.getItem("profile");
-        const parsedProfile = initialState ? JSON.parse(initialState) : null;
         localStorage.setItem("profile", JSON.stringify(parsedProfile || profile));
     }, [profile]);
 
