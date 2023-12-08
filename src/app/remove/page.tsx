@@ -5,17 +5,10 @@ import { useEffect } from "react";
 export default function Demopage() {
     const dispatch = useProfileDispatch()
     const profile = useProfile()
-    
+
     useEffect(() => {
         dispatch({
-            type: "remove", profile: {
-                first_name: "Ebube",
-                id: "1",
-                last_name: "chukwuma",
-                profile_pic: null,
-                user_id: null,
-                username: null,
-            }
+            type: "remove", profile: null
         })
 
     }, [dispatch])
