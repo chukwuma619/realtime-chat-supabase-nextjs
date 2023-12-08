@@ -36,8 +36,16 @@ export default function Threads({ messages, user_details }: { messages: messageT
                 'postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'messages', },
                 (payload) => {
-                    console.log('Change received!', payload)
-                    setAllMessages([...allMessages!, payload.new as messageType])
+                    console.log('Change received!', payload.new)
+            
+                    const { sender_id, receiver_id } = payload.new;
+
+                    if ((sender_id === "e5f739ab-faf5-4c54-9d69-144faa2aed9a" && receiver_id === "bec9f99d-40de-435b-ae4e-de13327b4eb0") ||
+                        (sender_id === "bec9f99d-40de-435b-ae4e-de13327b4eb0" && receiver_id === "e5f739ab-faf5-4c54-9d69-144faa2aed9a")) {
+                      setAllMessages([...allMessages!, payload.new as messageType])
+                    }
+                    
+
                 }
             )
             .subscribe()

@@ -85,7 +85,16 @@ export async function getAllMessages(receiver_id: string) {
   } = await supabase.auth.getUser();
   if (user) {
     let { data: messages, error } = await supabase
-    .from("messages").select("*");
+      .from("messages")
+      .select("*")
+      .or(
+        `sender_id.eq.${
+          user.id as string
+        },and(receiver_id.eq.bec9f99d-40de-435b-ae4e-de13327b4eb0), sender_id.eq.bec9f99d-40de-435b-ae4e-de13327b4eb0,and(receiver_id.eq.${
+          user.id as string
+        })`
+      );
+
     if (error) {
       console.error(error);
       return null;
