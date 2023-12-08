@@ -35,9 +35,6 @@ function profileReducer(state: profileType | null, action: actionType) {
         case 'update': {
             return action.profile
         }
-        case 'remove': {
-            return null
-        }
         default: {
             throw Error('Unknown action: ' + action.type);
         }

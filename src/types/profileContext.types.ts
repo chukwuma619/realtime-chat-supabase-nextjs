@@ -4,6 +4,6 @@ export type Dispatch<T> = (action: T) => void;
 export type profileType = Database["public"]["Tables"]["profiles"]["Row"];
 
 export type actionType = {
-  type: "update" | "remove";
+  type: "update";
   profile: profileType | null;
 };
