@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
-import { loginUser } from "@/actions/auth";
+import { signInWithEmail } from "@/actions/auth";
 import { AuthSubmitButton } from "@/components/buttons";
 
 export default function LoginPage() {
-    const [formState, formAction] = useFormState(loginUser, undefined);
+    const [formState, formAction] = useFormState(signInWithEmail, null);
     return (
         <>
             <section className="bg-gray-50 dark:bg-gray-900">

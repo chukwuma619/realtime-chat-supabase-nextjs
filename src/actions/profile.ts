@@ -2,11 +2,11 @@ import { Database } from "@/types/database.types";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { cache } from "react";
+import { unstable_noStore as noStore } from "next/cache";
+import { notFound } from "next/navigation";
 
-export const fetchUserProfile = cache(async () => {
-  "use server";
+export const authUserProfile = cache(async () => {
   const cookieStore = cookies();
-
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -15,37 +15,29 @@ export const fetchUserProfile = cache(async () => {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: "", ...options });
-        },
       },
     }
   );
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  if (user) {
+  const { data, error } = await supabase.auth.getSession();
+
+  if (data && data.session?.user) {
+    const user = data.session.user;
     let { data: profiles, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("user_id", user.id)
       .limit(1)
       .single();
-    if (error) {
-      console.error(error);
-      return null;
-    } else return profiles;
-  } else return null;
+
+    if (error) console.error(error);
+    else return profiles;
+  }
 });
 
-export const fetchUserDetails = cache(async (user_id: string) => {
-  "use server";
+export const otherUserProfile = async ({ username }: { username: string }) => {
+  noStore();
   const cookieStore = cookies();
-
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -54,25 +46,17 @@ export const fetchUserDetails = cache(async (user_id: string) => {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: "", ...options });
-        },
       },
     }
   );
 
-  let { data: profile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("user_id", 'bec9f99d-40de-435b-ae4e-de13327b4eb0')
-    .limit(1)
-    .single();
+    let { data: profiles, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("username", username)
+      .limit(1)
+      .single();
 
-  if (error) {
-    console.error(error);
-    return null;
-  } else return profile;
-});
+    if (error?.hint === null) notFound();
+    else return profiles;
+  }

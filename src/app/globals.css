@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  :popover-open {
+    position: absolute;
+    inset: unset;
+    right: 5px;
+    top: 5px;
+  }
+  /* ... */
+}

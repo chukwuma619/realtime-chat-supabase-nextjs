@@ -1,17 +1,17 @@
 import Threads from "@/components/threads";
 import { getAllMessages } from "@/actions/message";
-import { fetchUserProfile, fetchUserDetails } from "@/actions/profile";
+import { authUserProfile, otherUserProfile } from "@/actions/profile";
 
 
+export default async function MessagePage({ params }: { params: { username: string } }) {
 
-export default async function MessagePage({ params }: { params: { user_id: string } }) {
+    const authuserProfile = await authUserProfile()
+    
+    const otheruserProfile = await otherUserProfile({username: params.username})
+    console.log(otheruserProfile);
 
-    const userDetails = await fetchUserDetails(params.user_id)
-    console.log(userDetails);
+    const messages = await getAllMessages(params.username)
 
-    const messages = await getAllMessages(params.user_id)
-    console.log(messages);
-
-    return <Threads messages={messages}  user_details={userDetails} />
+    return <Threads messages={messages}  auth_user_detail={authuserProfile}  other_user_detail={otheruserProfile}/>
 }
 
