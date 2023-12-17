@@ -4,26 +4,42 @@ import { FaPhone, FaVideo, FaEllipsisVertical } from "react-icons/fa6";
 import { GoDotFill } from "react-icons/go";
 import { IoMdSend } from "react-icons/io";
 import { Database } from "@/types/database.types";
-import { createBrowserClient, } from "@supabase/ssr";
+import { createBrowserClient, createServerClient, CookieOptions } from "@supabase/ssr";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useState, useRef, useOptimistic } from "react";
-import { useFormState } from "react-dom";
+import { useFormState, useFormStatus } from "react-dom";
 import { SendMessageButton } from "@/components/buttons";
+import { cookies } from "next/headers";
 
 import { deliverMessage } from "@/actions/message";
 import { useProfile } from "@/contexts/ProfileProvider";
-type messageType = Database['public']['Tables']['messages']['Row']
+type messageType = {
+    content: string | null;
+    created_at: string;
+    id: string;
+    receiver_id: string | null;
+    sender_id: string | null;
+}
 
 type userProfileType = Database['public']['Tables']['profiles']['Row']
 
 
 export default function Threads({ messages, user_details }: { messages: messageType[] | null, user_details: userProfileType | null, }) {
-    const user = useProfile()
-    console.log(user);
 
-    const [allMessages, setAllMessages] = useState<messageType[] | null>([])
+    const user = useProfile()
+    const formRef = useRef<HTMLFormElement | null>(null)
+    const messagesRef = useRef<HTMLDivElement | null>(null)
+    const [allMessages, setAllMessages] = useState<messageType[] | null>(messages);
+
+    async function formAction(formData: FormData) {
+        formRef.current?.reset();
+        await deliverMessage(formData);
+    }
+
     useEffect(() => {
-        setAllMessages(messages)
+        if (messagesRef.current) {
+            messagesRef.current.scrollTo({ behavior: "smooth", top: messagesRef.current.scrollHeight })
+        }
     }, [messages])
 
     const supabase = createBrowserClient<Database>(
@@ -37,14 +53,14 @@ export default function Threads({ messages, user_details }: { messages: messageT
                 { event: 'INSERT', schema: 'public', table: 'messages', },
                 (payload) => {
                     console.log('Change received!', payload.new)
-            
+
                     const { sender_id, receiver_id } = payload.new;
 
                     if ((sender_id === "e5f739ab-faf5-4c54-9d69-144faa2aed9a" && receiver_id === "bec9f99d-40de-435b-ae4e-de13327b4eb0") ||
                         (sender_id === "bec9f99d-40de-435b-ae4e-de13327b4eb0" && receiver_id === "e5f739ab-faf5-4c54-9d69-144faa2aed9a")) {
-                      setAllMessages([...allMessages!, payload.new as messageType])
+                        setAllMessages([...allMessages!, payload.new as messageType])
+
                     }
-                    
 
                 }
             )
@@ -89,12 +105,12 @@ export default function Threads({ messages, user_details }: { messages: messageT
                     </button>
                 </div>
             </nav>
-            <div className="flex flex-col gap-y-4 p-4 max-h-[77vh] overflow-y-scroll">
-                {allMessages?.map((message) => {
+            <div ref={messagesRef} className="flex flex-col gap-y-4 p-4 max-h-[77vh] overflow-y-scroll">
+                {allMessages?.map((message, index) => {
                     const isSender = message.sender_id === user?.user_id
                     return (
 
-                        <div key={message.id} className={`w-full flex gap-x-2.5 ${isSender ? 'flex-row-reverse' : 'flex-row'} `}>
+                        <div key={index} className={`w-full flex gap-x-2.5 ${isSender ? 'flex-row-reverse' : 'flex-row'} `}>
                             <div>
                                 <Image
                                     width={32}
@@ -117,19 +133,17 @@ export default function Threads({ messages, user_details }: { messages: messageT
                     )
                 })}
             </div>
-        </div>
-    )
-}
-
-// const [formState, formAction] = useFormState(deliverMessage, undefined);
-
-{/* <form action={formAction} method="post" className="px-1 mt-2 w-full relative">
+            <form action={formAction} ref={formRef} method="post" className="px-1 mt-2 w-full relative">
                 <textarea title="send message" name="content" id="content"
                     placeholder="write your message here" className="w-full resize-none focus-visible:outline-blue-200 focus-visible:outline-1 pl-4 pr-10 py-3 border border-gray-200"></textarea>
-                <input hidden type="text" name="sender_id" id="sender_id" value={'e5f739ab-faf5-4c54-9d69-144faa2aed9a'} />
-                <input hidden type="text" name="receiver_id" id="sender_id" value={'bec9f99d-40de-435b-ae4e-de13327b4eb0'} />
+                <input hidden type="text" name="sender_id" id="sender_id" className="hidden" value={'e5f739ab-faf5-4c54-9d69-144faa2aed9a'} />
+                <input hidden type="text" name="receiver_id" id="sender_id" className="hidden" value={'bec9f99d-40de-435b-ae4e-de13327b4eb0'} />
 
                 <SendMessageButton>
                     <IoMdSend className="w-8 h-8 fill-blue-600" />
                 </SendMessageButton>
-            </form> */}
+            </form>
+        </div>
+    )
+}
+

@@ -17,7 +17,7 @@ export function AuthSubmitButton({ text }: { text: string }) {
 export function SendMessageButton({ children }: { children: React.ReactNode }) {
     const status = useFormStatus();
     return (
-        <button type="submit" title="send" className="absolute right-0 top-1/4 p-1">
+        <button disabled={status.pending} type="submit" title="send" className="absolute right-0 top-1/4 p-1">
             {children}
         </button>
     );
