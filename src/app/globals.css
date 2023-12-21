@@ -9,5 +9,8 @@
     right: 5px;
     top: 5px;
   }
-  /* ... */
+  .w-available {
+    width: -moz-available;
+    width: -webkit-fill-available;
+  }
 }
