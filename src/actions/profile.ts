@@ -1,3 +1,4 @@
+"use server";
 import { Database } from "@/types/database.types";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -19,23 +20,14 @@ export const authUserProfile = cache(async () => {
     }
   );
 
-  const { data, error } = await supabase.auth.getSession();
+  let { data, error } = await supabase.rpc("get_auth_user_profile");
+  console.log(data);
 
-  if (data && data.session?.user) {
-    const user = data.session.user;
-    let { data: profiles, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .limit(1)
-      .single();
-
-    if (error) console.error(error);
-    else return profiles;
-  }
+  if (error) console.error(error);
+  else return data ? data[0] : null;
 });
 
-export const otherUserProfile = async ({ username }: { username: string }) => {
+export const otherUserProfile = async ({ user_id }: { user_id: string }) => {
   noStore();
   const cookieStore = cookies();
   const supabase = createServerClient<Database>(
@@ -50,13 +42,13 @@ export const otherUserProfile = async ({ username }: { username: string }) => {
     }
   );
 
-    let { data: profiles, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("username", username)
-      .limit(1)
-      .single();
+  let { data: profiles, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("user_id", "168dd8af-db2c-4d4e-aea3-40b9c9a6bf12")
+    .limit(1)
+    .single();
 
-    if (error?.hint === null) notFound();
-    else return profiles;
-  }
+  if (error?.hint === null) notFound();
+  else return profiles;
+};

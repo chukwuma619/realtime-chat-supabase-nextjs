@@ -10,41 +10,88 @@ import { useEffect, useState, useRef, useOptimistic } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { SendMessageButton } from "@/components/buttons";
 import { cookies } from "next/headers";
-
+import { RealtimePresenceState } from "@supabase/supabase-js";
 import { deliverMessage } from "@/actions/message";
 type messageType = Database['public']['Tables']['messages']['Row']
 
 type userProfileType = Database['public']['Tables']['profiles']['Row']
 
 
-export default function Threads({ messages, auth_user_detail, other_user_detail }: { messages: messageType[] | null, auth_user_detail: userProfileType | null | undefined, other_user_detail: userProfileType | null }) {
+export default function Threads({ messages, auth_user_detail, other_user_detail }: { messages: messageType[] | null | undefined, auth_user_detail: userProfileType | null | undefined, other_user_detail: userProfileType | null | undefined }) {
     const formRef = useRef<HTMLFormElement | null>(null)
     const messagesRef = useRef<HTMLDivElement | null>(null)
     const [allMessages, setAllMessages] = useState<messageType[]>(messages ? messages : []);
 
-    const [optimisticMessages, addOptimisticMessage] = useOptimistic(
-        allMessages,
-        (state, newMessage: string) => [
-            ...state,
-            {
-                content: newMessage,
-                created_at: "null",
-                id: "null",
-                receiver_id: null,
-                sender_id: "e5f739ab-faf5-4c54-9d69-144faa2aed9a"
-            }
-        ]
-    );
+    // const [optimisticMessages, addOptimisticMessage] = useOptimistic(
+    //     allMessages,
+    //     (state, newMessage: string) => [
+    //         ...state,
+    //         {
+    //             content: newMessage,
+    //             created_at: "null",
+    //             id: "null",
+    //             receiver_id: null,
+    //             sender_id: "e5f739ab-faf5-4c54-9d69-144faa2aed9a"
+    //         }
+    //     ]
+    // );
 
-    async function formAction(formData: FormData) {
-        formRef.current?.reset();
-        let content = formData.get("content") as string
-        addOptimisticMessage(content);
-        let sentMessage = await deliverMessage(formData);
-        setAllMessages((messages) => [...messages, sentMessage])
-        console.log(allMessages);
+    // async function formAction(formData: FormData) {
+    //     formRef.current?.reset();
+    //     let content = formData.get("content") as string
+    //     addOptimisticMessage(content);
+    //     let sentMessage = await deliverMessage(formData);
+    //     setAllMessages((messages) => [...messages, sentMessage])
+    //     console.log(allMessages);
 
-    }
+    // }
+
+    const [onlineUser, setOnlineUsers] = useState<RealtimePresenceState>()
+    useEffect(() => {
+        const supabase = createBrowserClient<Database>(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        )
+
+        const roomOne = supabase.channel('chat_room')
+        roomOne
+            .on('presence', { event: 'sync' }, () => {
+                const newState = roomOne.presenceState()
+                setOnlineUsers(newState)
+                console.log('sync', newState)
+            })
+            .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+                console.log('join', key, newPresences)
+            })
+            .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+                console.log('leave', key, leftPresences)
+            })
+
+            .subscribe(async (status) => {
+                if (status !== 'SUBSCRIBED') {
+                    return null
+                }
+
+                const { data, error } = await supabase.auth.getSession()
+                console.log(data);
+
+                const userStatus = {
+                    user: data.session?.user.id,
+                    online_at: new Date().toISOString(),
+                }
+                const presenceTrackStatus = await roomOne.track(userStatus)
+
+                console.log(presenceTrackStatus);
+
+
+            })
+
+        return () => { roomOne.unsubscribe() }
+
+    }, [])
+
+    console.log(onlineUser);
+    
 
     useEffect(() => {
         if (messagesRef.current) {
@@ -96,7 +143,7 @@ export default function Threads({ messages, auth_user_detail, other_user_detail 
                     </div>
 
                     <div className="flex flex-col">
-                        <h5 className="text-gray-900 font-medium text-base">{auth_user_detail?.last_name} {auth_user_detail?.first_name}</h5>
+                        <h5 className="text-gray-900 font-medium text-base">{other_user_detail?.last_name} {other_user_detail?.first_name}</h5>
                         <div className="flex gap-x-1 mt-0.5 text-green-500 text-xs items-center flex-1">
                             <GoDotFill />
                             <span>Online</span>
@@ -116,7 +163,7 @@ export default function Threads({ messages, auth_user_detail, other_user_detail 
                 </div>
             </nav>
             <div ref={messagesRef} className="flex flex-col gap-y-4 p-4 max-h-[77vh] overflow-y-scroll">
-                {optimisticMessages?.map((message, index) => {
+                {allMessages?.map((message, index) => {
                     const isSender = message.sender_id === auth_user_detail?.user_id
                     return (
 
@@ -143,7 +190,7 @@ export default function Threads({ messages, auth_user_detail, other_user_detail 
                     )
                 })}
             </div>
-            <form action={formAction} ref={formRef} className="px-1 mt-2 w-full relative">
+            <form ref={formRef} className="px-1 mt-2 w-full relative">
                 <textarea title="send message" name="content" id="content"
                     placeholder="write your message here" className="w-full resize-none focus-visible:outline-blue-200 focus-visible:outline-1 pl-4 pr-10 py-3 border border-gray-200"></textarea>
                 <input hidden type="text" name="sender_id" id="sender_id" className="hidden" defaultValue={'e5f739ab-faf5-4c54-9d69-144faa2aed9a'} />

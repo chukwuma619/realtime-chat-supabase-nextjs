@@ -7,7 +7,7 @@ export default async function MessagePage({ params }: { params: { username: stri
 
     const authuserProfile = await authUserProfile()
     
-    const otheruserProfile = await otherUserProfile({username: params.username})
+    const otheruserProfile = await otherUserProfile({user_id: params.username})
     console.log(otheruserProfile);
 
     const messages = await getAllMessages(params.username)

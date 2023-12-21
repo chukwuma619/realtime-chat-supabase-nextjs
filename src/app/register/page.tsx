@@ -8,21 +8,8 @@ import Popover from "@/components/popover";
 import { ZodFormattedError, object } from "zod";
 import { useEffect, useState } from "react";
 
-type formStateType = {
-    _errors: [],
-    email: {
-        _errors: string[]
-    },
-    username: {
-        _errors: string[]
-    },
-    password: {
-        _errors: string[]
-    },
-}
 export default function RegisterPage() {
     const [formState, formAction] = useFormState(signUpNewUser, undefined)
-    const allErrors = [];
     return (
         <>
             <section className="bg-gray-50 dark:bg-gray-900">
@@ -43,19 +30,19 @@ export default function RegisterPage() {
                                 <div>
                                     <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email</label>
                                     <input type="email" name="email" id="email" className={`bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 ${typeof formState === "object" && formState?.email && 'border-red-300'}`} placeholder="name@company.com" />
-                                    {typeof formState === "object" ? formState?.email && <p className="text-xs text-red-400">{formState.email[0]}</p> : <p className="text-xs text-red-400">{formState}</p>}
+                                    {typeof formState === "object" ? formState?.email && <p className="text-xs text-red-400 mt-2">{formState.email[0]}</p> : <p className="text-xs text-red-400 mt-2">{formState}</p>}
 
                                 </div>
                                 <div>
                                     <label htmlFor="username" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Username</label>
                                     <input type="text" name="username" id="username" autoComplete="username" className={`bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 ${typeof formState === "object" && formState?.username && 'border-red-300'}`} placeholder="username" />
-                                    {typeof formState === "object" && formState?.username && <p className="text-xs text-red-400">{formState.username[0]}</p>}
+                                    {typeof formState === "object" && formState?.username && <p className="text-xs text-red-400 mt-2">{formState.username[0]}</p>}
 
                                 </div>
                                 <div>
                                     <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
                                     <input type="password" autoComplete="new-password" name="password" id="password" placeholder="••••••••" className={`bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 ${typeof formState === "object" && formState?.password && 'border-red-300'}`} />
-                                    {typeof formState === "object" && formState?.password && <p className="text-xs text-red-400">{formState.password[0]}</p>}
+                                    {typeof formState === "object" && formState?.password && <p className="text-xs text-red-400 mt-2">{formState.password[0]}</p>}
                                 </div>
                                 <AuthSubmitButton text="Create Account" />
                                 <p className="text-sm font-light text-gray-500 dark:text-gray-400">

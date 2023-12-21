@@ -1,14 +1,69 @@
+"use client";
+
 import Image from 'next/image'
 import Popover from '@/components/popover';
 import { authUserProfile } from '@/actions/profile';
-export default async function Home() {
+import { createClient } from '@supabase/supabase-js'
+import { Database } from '@/types/database.types';
+import { useEffect, useState } from 'react';
+import { RealtimePresenceState } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
+import { Avatar } from '@/components/avatars';
+import UserChat from '@/components/chat/user';
+import ChatList from '@/components/chat/chatList';
+export default function Home() {
+  const [onlineUser, setOnlineUsers] = useState<RealtimePresenceState>()
+  useEffect(() => {
+    const supabase = createBrowserClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
 
-  const userProfile = await authUserProfile()
-  console.log(userProfile);
-  
+
+    const roomOne = supabase.channel('chat_room')
+
+    roomOne
+      .on('presence', { event: 'sync' }, () => {
+        const newState = roomOne.presenceState()
+        setOnlineUsers(newState)
+        console.log('sync', newState)
+      })
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        console.log('join', key, newPresences)
+      })
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+        console.log('leave', key, leftPresences)
+      })
+
+      .subscribe(async (status) => {
+        if (status !== 'SUBSCRIBED') {
+          return null
+        }
+
+        const { data, error } = await supabase.auth.getSession()
+        console.log(data);
+
+        const userStatus = {
+          user: data.session?.user.id,
+          online_at: new Date().toISOString(),
+        }
+        const presenceTrackStatus = await roomOne.track(userStatus)
+
+        console.log(presenceTrackStatus);
+
+
+      })
+
+    return () => { roomOne.unsubscribe() }
+
+  }, [])
+
+
+
+
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      {/* <Popover  content='testing' type='error'/> */}
       <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
         <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
           Get started by editing&nbsp;

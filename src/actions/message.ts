@@ -89,24 +89,10 @@ export async function getAllMessages(receiver_id: string) {
       },
     }
   );
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) {
-    let { data: messages, error } = await supabase
-      .from("messages")
-      .select("*")
-      .or(
-        `sender_id.eq.${
-          user.id as string
-        },and(receiver_id.eq.bec9f99d-40de-435b-ae4e-de13327b4eb0), sender_id.eq.bec9f99d-40de-435b-ae4e-de13327b4eb0,and(receiver_id.eq.${
-          user.id as string
-        })`
-      );
 
-    if (error) {
-      console.error(error);
-      return null;
-    } else return messages;
-  } else return null;
+  let { data, error } = await supabase.rpc("get_messages", {
+    receiver_id_input: receiver_id,
+  });
+  if (error) console.error(error);
+  else return data;
 }
