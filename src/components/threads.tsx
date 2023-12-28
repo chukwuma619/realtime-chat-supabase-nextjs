@@ -2,96 +2,20 @@
 import Image from "next/image"
 import { FaPhone, FaVideo, FaEllipsisVertical } from "react-icons/fa6";
 import { GoDotFill } from "react-icons/go";
-import { IoMdSend } from "react-icons/io";
 import { Database } from "@/types/database.types";
-import { createBrowserClient, createServerClient, CookieOptions } from "@supabase/ssr";
-import { User } from "@supabase/supabase-js";
-import { useEffect, useState, useRef, useOptimistic } from "react";
-import { useFormState, useFormStatus } from "react-dom";
-import { SendMessageButton } from "@/components/buttons";
-import { cookies } from "next/headers";
-import { RealtimePresenceState } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
+import { useEffect, useState, useRef, useOptimistic } from "react"; import { useFormState, useFormStatus } from "react-dom";
 import { deliverMessage } from "@/actions/message";
-type messageType = Database['public']['Tables']['messages']['Row']
+import FormArea from "./messaging/formarea";
+import ChatSidebar from "./chat/sidebar";
+import ChatNavbar from "./messaging/chatNavbar";
+import { messageType, userProfileType } from "@/types/extracted-database.types";
 
-type userProfileType = Database['public']['Tables']['profiles']['Row']
 
-
-export default function Threads({ messages, auth_user_detail, other_user_detail }: { messages: messageType[] | null | undefined, auth_user_detail: userProfileType | null | undefined, other_user_detail: userProfileType | null | undefined }) {
-    const formRef = useRef<HTMLFormElement | null>(null)
+export default function Threads({ messages, auth_user_detail, other_user_detail }: { messages: messageType[] | null | undefined, auth_user_detail: userProfileType | null | undefined, other_user_detail: userProfileType | null }) {
     const messagesRef = useRef<HTMLDivElement | null>(null)
     const [allMessages, setAllMessages] = useState<messageType[]>(messages ? messages : []);
 
-    // const [optimisticMessages, addOptimisticMessage] = useOptimistic(
-    //     allMessages,
-    //     (state, newMessage: string) => [
-    //         ...state,
-    //         {
-    //             content: newMessage,
-    //             created_at: "null",
-    //             id: "null",
-    //             receiver_id: null,
-    //             sender_id: "e5f739ab-faf5-4c54-9d69-144faa2aed9a"
-    //         }
-    //     ]
-    // );
-
-    // async function formAction(formData: FormData) {
-    //     formRef.current?.reset();
-    //     let content = formData.get("content") as string
-    //     addOptimisticMessage(content);
-    //     let sentMessage = await deliverMessage(formData);
-    //     setAllMessages((messages) => [...messages, sentMessage])
-    //     console.log(allMessages);
-
-    // }
-
-    const [onlineUser, setOnlineUsers] = useState<RealtimePresenceState>()
-    useEffect(() => {
-        const supabase = createBrowserClient<Database>(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        )
-
-        const roomOne = supabase.channel('chat_room')
-        roomOne
-            .on('presence', { event: 'sync' }, () => {
-                const newState = roomOne.presenceState()
-                setOnlineUsers(newState)
-                console.log('sync', newState)
-            })
-            .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-                console.log('join', key, newPresences)
-            })
-            .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-                console.log('leave', key, leftPresences)
-            })
-
-            .subscribe(async (status) => {
-                if (status !== 'SUBSCRIBED') {
-                    return null
-                }
-
-                const { data, error } = await supabase.auth.getSession()
-                console.log(data);
-
-                const userStatus = {
-                    user: data.session?.user.id,
-                    online_at: new Date().toISOString(),
-                }
-                const presenceTrackStatus = await roomOne.track(userStatus)
-
-                console.log(presenceTrackStatus);
-
-
-            })
-
-        return () => { roomOne.unsubscribe() }
-
-    }, [])
-
-    console.log(onlineUser);
-    
 
     useEffect(() => {
         if (messagesRef.current) {
@@ -109,12 +33,9 @@ export default function Threads({ messages, auth_user_detail, other_user_detail 
                 'postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'messages', },
                 (payload) => {
-                    console.log('Change received!', payload.new)
-
                     const { sender_id, receiver_id } = payload.new;
-
-                    if ((sender_id === "e5f739ab-faf5-4c54-9d69-144faa2aed9a" && receiver_id === "bec9f99d-40de-435b-ae4e-de13327b4eb0") ||
-                        (sender_id === "bec9f99d-40de-435b-ae4e-de13327b4eb0" && receiver_id === "e5f739ab-faf5-4c54-9d69-144faa2aed9a")) {
+                    if ((sender_id === auth_user_detail?.user_id && receiver_id === other_user_detail?.user_id) ||
+                        (sender_id === other_user_detail?.user_id && receiver_id === auth_user_detail?.user_id)) {
                         setAllMessages([...allMessages!, payload.new as messageType])
 
                     }
@@ -125,82 +46,45 @@ export default function Threads({ messages, auth_user_detail, other_user_detail 
         return () => {
             supabase.removeChannel(channels)
         }
-    }, [supabase, allMessages])
+    }, [supabase, allMessages, auth_user_detail?.user_id, other_user_detail?.user_id])
 
     return (
-        <div className="max-w-2xl">
-            <nav className="flex justify-between items-center  px-1 py-2 border-b border-b-gray-200">
-                <div className="flex gap-x-3 items-center">
+        <div className="flex">
+            <ChatSidebar />
+            <div className="flex flex-1 flex-col h-screen">
+                <ChatNavbar userProfile={other_user_detail} />
+                <div className="flex flex-col gap-y-4 p-4 flex-1 overflow-y-auto">
+                    {allMessages?.map((message, index) => {
+                        const isSender = message.sender_id === auth_user_detail?.user_id
+                        return (
 
-                    <div>
-                        <Image
-                            width={32}
-                            height={32}
-                            src="/profile-avatar.jpeg"
-                            alt="profile-avartar"
-                            className="rounded-full"
-                            priority />
-                    </div>
-
-                    <div className="flex flex-col">
-                        <h5 className="text-gray-900 font-medium text-base">{other_user_detail?.last_name} {other_user_detail?.first_name}</h5>
-                        <div className="flex gap-x-1 mt-0.5 text-green-500 text-xs items-center flex-1">
-                            <GoDotFill />
-                            <span>Online</span>
-                        </div>
-                    </div>
-                </div>
-                <div className="flex gap-x-2">
-                    <button title="phone call" className="p-[6px] hover:bg-blue-50 rounded">
-                        <FaPhone className="w-5 h-5 fill-blue-700" />
-                    </button>
-                    <button title="video call" className="p-[6px] hover:bg-blue-50 rounded">
-                        <FaVideo className="w-5 h-5 fill-blue-700" />
-                    </button>
-                    <button title="menu" className="p-[6px] hover:bg-blue-50 rounded">
-                        <FaEllipsisVertical className="w-5 h-5 fill-blue-700" />
-                    </button>
-                </div>
-            </nav>
-            <div ref={messagesRef} className="flex flex-col gap-y-4 p-4 max-h-[77vh] overflow-y-scroll">
-                {allMessages?.map((message, index) => {
-                    const isSender = message.sender_id === auth_user_detail?.user_id
-                    return (
-
-                        <div key={index} className={`w-full flex gap-x-2.5 ${isSender ? 'flex-row-reverse' : 'flex-row'} `}>
-                            <div>
-                                <Image
-                                    width={32}
-                                    height={32}
-                                    src="/profile-avatar1.jpeg"
-                                    alt="profile-avartar"
-                                    className="rounded-full"
-                                    priority />
-                            </div>
-                            <div>
-                                <div className={`flex gap-x-1.5 ${isSender ? 'justify-end' : 'justify-start'}`}>
-                                    <h6 className="text-gray-900 font-medium text-sm">{isSender ? `${auth_user_detail?.first_name} ${auth_user_detail?.last_name}` : `${other_user_detail?.first_name} ${other_user_detail?.last_name}`}</h6>
-                                    <p className="texxt-gray-500 text-sm">11:46</p>
+                            <div key={index} className={`w-full flex gap-x-2.5 ${isSender ? 'flex-row-reverse' : 'flex-row'} `}>
+                                <div>
+                                    <Image
+                                        width={32}
+                                        height={32}
+                                        src="/profile-avatar1.jpeg"
+                                        alt="profile-avartar"
+                                        className="rounded-full"
+                                        priority />
                                 </div>
-                                <div className={`p-4 bg-gray-100 mt-1 ${isSender ? 'mt-1 rounded-tl-[20px]' : 'rounded-tr-[20px]'} rounded-br-[20px]  rounded-bl-[20px] max-w-xs`}>
-                                    <p className="text-gray-900 text-sm">{message.content}</p>
+                                <div>
+                                    <div className={`flex gap-x-1.5 ${isSender ? 'justify-end' : 'justify-start'}`}>
+                                        <h6 className="text-gray-900 font-medium text-sm">{isSender ? `${auth_user_detail?.first_name} ${auth_user_detail?.last_name}` : `${other_user_detail?.first_name} ${other_user_detail?.last_name}`}</h6>
+                                        <p className="texxt-gray-500 text-sm">11:46</p>
+                                    </div>
+                                    <div className={`p-4 bg-gray-100 mt-1 ${isSender ? 'mt-1 rounded-tl-[20px]' : 'rounded-tr-[20px]'} rounded-br-[20px]  rounded-bl-[20px] max-w-xs`}>
+                                        <p className="text-gray-900 text-sm">{message.content}</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )
-                })}
+                        )
+                    })}
+                </div>
+                <FormArea receiver_id={other_user_detail?.user_id!} />
             </div>
-            <form ref={formRef} className="px-1 mt-2 w-full relative">
-                <textarea title="send message" name="content" id="content"
-                    placeholder="write your message here" className="w-full resize-none focus-visible:outline-blue-200 focus-visible:outline-1 pl-4 pr-10 py-3 border border-gray-200"></textarea>
-                <input hidden type="text" name="sender_id" id="sender_id" className="hidden" defaultValue={'e5f739ab-faf5-4c54-9d69-144faa2aed9a'} />
-                <input hidden type="text" name="receiver_id" id="sender_id" className="hidden" defaultValue={'bec9f99d-40de-435b-ae4e-de13327b4eb0'} />
-
-                <SendMessageButton>
-                    <IoMdSend className="w-8 h-8 fill-blue-600" />
-                </SendMessageButton>
-            </form>
         </div>
+
     )
 }
 

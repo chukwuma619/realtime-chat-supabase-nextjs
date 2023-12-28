@@ -21,8 +21,6 @@ export const authUserProfile = cache(async () => {
   );
 
   let { data, error } = await supabase.rpc("get_auth_user_profile");
-  console.log(data);
-
   if (error) console.error(error);
   else return data ? data[0] : null;
 });
@@ -45,7 +43,7 @@ export const otherUserProfile = async ({ user_id }: { user_id: string }) => {
   let { data: profiles, error } = await supabase
     .from("profiles")
     .select("*")
-    .eq("user_id", "168dd8af-db2c-4d4e-aea3-40b9c9a6bf12")
+    .eq("user_id", user_id)
     .limit(1)
     .single();
 

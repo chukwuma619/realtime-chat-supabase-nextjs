@@ -14,11 +14,11 @@ export function AuthSubmitButton({ text }: { text: string }) {
 }
 
 
-export function SendMessageButton({ children }: { children: React.ReactNode }) {
+export function SendMessageButton() {
     const status = useFormStatus();
     return (
-        <button disabled={status.pending} type="submit" title="send" className="absolute right-0 top-1/4 p-1">
-            {children}
+        <button disabled={status.pending} type="submit" title="send" className="py-2 px-3 inline-flex items-center bg-blue-700 rounded-lg text-sm text-white hover:bg-blue-800 focus-visible:outline-[3px] focus-visible:outline-blue-200 focus-visible:bg-blue-800">
+            Send Message
         </button>
     );
 }
