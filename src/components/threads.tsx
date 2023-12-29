@@ -33,16 +33,18 @@ export default function Threads({ messages, auth_user_detail, other_user_detail 
                 'postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'messages', },
                 (payload) => {
+                    console.log(payload.new);
                     const { sender_id, receiver_id } = payload.new;
                     if ((sender_id === auth_user_detail?.user_id && receiver_id === other_user_detail?.user_id) ||
                         (sender_id === other_user_detail?.user_id && receiver_id === auth_user_detail?.user_id)) {
                         setAllMessages([...allMessages!, payload.new as messageType])
-
                     }
 
                 }
             )
             .subscribe()
+
+        messagesRef.current?.scrollTo({ behavior: "smooth", top: messagesRef.current.scrollHeight })
         return () => {
             supabase.removeChannel(channels)
         }
@@ -53,7 +55,7 @@ export default function Threads({ messages, auth_user_detail, other_user_detail 
             <ChatSidebar />
             <div className="flex flex-1 flex-col h-screen">
                 <ChatNavbar userProfile={other_user_detail} />
-                <div className="flex flex-col gap-y-4 p-4 flex-1 overflow-y-auto">
+                <div ref={messagesRef} className="flex flex-col gap-y-4 p-4 flex-1 overflow-y-auto">
                     {allMessages?.map((message, index) => {
                         const isSender = message.sender_id === auth_user_detail?.user_id
                         return (
